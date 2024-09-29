@@ -34,9 +34,10 @@ app.post("/upload", upload.single("file"), async (req, res) => {
   const ownerMetaMaskId = req.body.owner; // Get the owner's MetaMask ID from the request body
   const fileName = req.body.fileName; // Get the file name from the request body
   const fileDescription = req.body.fileDescription; // Get the file description from the request body
-  const hash = "akljdfadf"; // If you want to include hash
-  const password = "kjhaksdhfajklhdf"; // If you want to include password
+  const hash = "akljdfadf"; // Optional hash (you may want to calculate the real hash of the file)
+  const password = "kjhaksdhfajklhdf"; // Optional password
 
+  // Validate request
   if (!file || !ownerMetaMaskId || !fileName || !fileDescription) {
     return res
       .status(400)
@@ -53,6 +54,7 @@ app.post("/upload", upload.single("file"), async (req, res) => {
     const pinataOptions = JSON.stringify({ cidVersion: 0 });
     data.append("pinataOptions", pinataOptions);
 
+    // Upload the file to IPFS using Pinata
     const response = await axios.post(
       "https://api.pinata.cloud/pinning/pinFileToIPFS",
       data,
@@ -67,36 +69,25 @@ app.post("/upload", upload.single("file"), async (req, res) => {
     );
 
     // Save evidence to the blockchain using the provided owner's MetaMask ID
-    // Get available accounts in Ganache
     const accounts = await web3.eth.getAccounts();
     const senderAddress = accounts[0]; // Use a default Ganache account or ensure MetaMask ID is valid
 
     await evidenceContract.methods
       .addEvidence(
-        response.data.IpfsHash,
-        fileName,
-        file.mimetype,
-        hash,
-        password,
-        fileDescription,
-        ownerMetaMaskId
+        response.data.IpfsHash, // _cid: IPFS hash
+        file.originalname, // _originalName: Original file name
+        file.mimetype, // _mimeType: File type
+        hash, // _hash: Optional hash
+        password, // _password: Optional password
+        fileName, // _name: Custom file name
+        fileDescription, // _description: File description
+        ownerMetaMaskId // _owner: Owner's MetaMask ID
       )
       .send({ from: senderAddress, gas: 5000000 }); // Use the valid Ganache account
 
-    const evidence = {
-      cid: response.data.IpfsHash,
-      originalName: file.originalname,
-      mimeType: file.mimetype,
-      timestamp: new Date().toISOString(),
-      owner: ownerMetaMaskId, // Store owner's MetaMask ID
-      description: fileDescription, // Store the file description
-      name: fileName, // Optionally include file name
-      // Optionally include hash and password
-    };
-
-    saveMetadata(evidence);
     fs.unlinkSync(file.path); // Remove the file from the uploads folder
 
+    // Send a successful response
     res.json({
       success: true,
       ipfsHash: response.data.IpfsHash,
@@ -109,22 +100,55 @@ app.post("/upload", upload.single("file"), async (req, res) => {
   }
 });
 
-// Retrieve All Evidence
 app.get("/evidence", async (req, res) => {
   try {
-    const metadataFilePath = "./metadata.json";
-    let evidenceRecords = [];
+    console.log("Fetching evidence count from contract...");
 
-    if (fs.existsSync(metadataFilePath)) {
-      evidenceRecords = JSON.parse(fs.readFileSync(metadataFilePath, "utf-8"));
+    // Fetch evidence count from the contract
+    const evidenceCount = await evidenceContract.methods
+      .getEvidenceCount()
+      .call();
+    console.log("Total evidence count:", evidenceCount);
+
+    if (evidenceCount == 0) {
+      return res.json({ success: true, data: [] });
     }
 
+    let evidenceRecords = [];
+
+    for (let i = 0; i < evidenceCount; i++) {
+      console.log(`Fetching evidence record at index ${i}...`);
+
+      // Fetch each evidence record using the getEvidence function from the contract
+      const evidenceRecord = await evidenceContract.methods
+        .getEvidence(i)
+        .call();
+
+      evidenceRecords.push({
+        cid: evidenceRecord.cid,
+        originalName: evidenceRecord.originalName,
+        mimeType: evidenceRecord.mimeType,
+        hash: evidenceRecord.hash,
+        password: evidenceRecord.password,
+        timestamp: new Date(
+          parseInt(evidenceRecord.timestamp) * 1000
+        ).toISOString(), // Convert timestamp to ISO format
+        name: evidenceRecord.name,
+        description: evidenceRecord.description,
+        owner: evidenceRecord.owner,
+      });
+    }
+
+    console.log("Successfully fetched evidence records:", evidenceRecords);
     res.json({
       success: true,
       data: evidenceRecords,
     });
   } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
+    console.error("Error fetching evidence from blockchain:", error.message);
+    res
+      .status(500)
+      .json({ success: false, message: "Error fetching evidence." });
   }
 });
 
@@ -133,23 +157,56 @@ app.get("/evidence/search/:cid", async (req, res) => {
   const { cid } = req.params;
 
   try {
-    const metadataFilePath = "./metadata.json";
-    let evidenceRecords = [];
+    // Fetch the total number of evidence records from the contract
+    const evidenceCount = await evidenceContract.methods
+      .getEvidenceCount()
+      .call();
 
-    if (fs.existsSync(metadataFilePath)) {
-      evidenceRecords = JSON.parse(fs.readFileSync(metadataFilePath, "utf-8"));
+    if (evidenceCount == 0) {
+      return res
+        .status(404)
+        .json({ success: false, message: "No evidence found." });
     }
 
-    const filteredRecords = evidenceRecords.filter(
-      (record) => record.cid === cid
-    );
+    let foundEvidence = null;
 
-    res.json({
-      success: true,
-      data: filteredRecords,
-    });
+    // Loop through all the evidence records to find the one with the matching CID
+    for (let i = 0; i < evidenceCount; i++) {
+      const evidenceRecord = await evidenceContract.methods
+        .getEvidence(i)
+        .call();
+
+      if (evidenceRecord.cid === cid) {
+        foundEvidence = {
+          cid: evidenceRecord.cid,
+          originalName: evidenceRecord.originalName,
+          mimeType: evidenceRecord.mimeType,
+          hash: evidenceRecord.hash,
+          password: evidenceRecord.password,
+          timestamp: new Date(
+            parseInt(evidenceRecord.timestamp) * 1000
+          ).toISOString(), // Convert timestamp to ISO format
+          name: evidenceRecord.name,
+          description: evidenceRecord.description,
+          owner: evidenceRecord.owner,
+        };
+        break; // Stop searching once the matching evidence is found
+      }
+    }
+
+    if (foundEvidence) {
+      res.json({
+        success: true,
+        data: foundEvidence,
+      });
+    } else {
+      res.status(404).json({ success: false, message: "Evidence not found." });
+    }
   } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
+    console.error("Error searching for evidence:", error.message);
+    res
+      .status(500)
+      .json({ success: false, message: "Error searching for evidence." });
   }
 });
 

@@ -23,7 +23,8 @@ contract Evidence {
         string memory _hash,
         string memory _password,
         string memory _name,
-        string memory _description
+        string memory _description,
+        string memory _owner
     ) public {
         evidenceRecords.push(EvidenceRecord({
             cid: _cid,
