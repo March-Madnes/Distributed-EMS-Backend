@@ -11,31 +11,28 @@ const upload = multer({ dest: 'uploads/' });
 const PINATA_API_KEY = process.env.PINATA_API_KEY;
 const PINATA_SECRET_API_KEY = process.env.PINATA_SECRET_API_KEY;
 
-// const axios = require('axios');
-// const FormData = require('form-data');
-// const fs = require('fs');
-// let data = new FormData();
-// data.append('file', fs.createReadStream('/C:/Users/Jogeshwari/Desktop/sem6/ai/AI decode.pdf'));
+const metadataFilePath = './metadata.json'; // Path to store metadata
 
-// let config = {
-//   method: 'post',
-//   maxBodyLength: Infinity,
-//   url: 'http://localhost:3000/upload',
-//   headers: { 
-//     'Content-Type': 'multipart/form-data', 
-//     ...data.getHeaders()
-//   },
-//   data : data
-// };
+// Helper function to store metadata
+const saveMetadata = (metadata) => {
+    let existingData = [];
+    if (fs.existsSync(metadataFilePath)) {
+        existingData = JSON.parse(fs.readFileSync(metadataFilePath, 'utf-8'));
+    }
+    existingData.push(metadata);
+    fs.writeFileSync(metadataFilePath, JSON.stringify(existingData, null, 2));
+};
 
-// axios.request(config)
-// .then((response) => {
-//   console.log(JSON.stringify(response.data));
-// })
-// .catch((error) => {
-//   console.log(error);
-// });
+// Helper function to get metadata by CID
+const getMetadataByCid = (cid) => {
+    if (fs.existsSync(metadataFilePath)) {
+        const metadataList = JSON.parse(fs.readFileSync(metadataFilePath, 'utf-8'));
+        return metadataList.find(meta => meta.cid === cid);
+    }
+    return null;
+};
 
+// Endpoint to upload a file to IPFS
 app.post('/upload', upload.single('file'), async (req, res) => {
     const file = req.file;
 
@@ -66,6 +63,14 @@ app.post('/upload', upload.single('file'), async (req, res) => {
             },
         });
 
+        // Save metadata including CID, original file name, and MIME type
+        saveMetadata({
+            cid: response.data.IpfsHash,
+            originalName: file.originalname,
+            mimeType: file.mimetype,
+        });
+
+        // Remove the file from the uploads folder
         fs.unlinkSync(file.path);
 
         res.json({
@@ -76,6 +81,43 @@ app.post('/upload', upload.single('file'), async (req, res) => {
         });
     } catch (error) {
         res.status(500).json({ success: false, message: error.message });
+    }
+});
+
+// Endpoint to retrieve a file from IPFS using its CID and download it with the original file name and format
+app.get('/retrieve-file/:cid', async (req, res) => {
+    const cid = req.params.cid;
+
+    // Retrieve metadata by CID
+    const metadata = getMetadataByCid(cid);
+
+    if (!metadata) {
+        return res.status(404).json({ success: false, message: 'File metadata not found' });
+    }
+
+    try {
+        // Construct the IPFS URL with the CID
+        const url = `https://gateway.pinata.cloud/ipfs/${cid}`;
+
+        // Make an HTTP GET request to the IPFS gateway
+        const response = await axios({
+            method: 'GET',
+            url: url,
+            responseType: 'stream' // Ensure that the response is a stream
+        });
+
+        // Set the response headers to download the file with the original name and type
+        res.set({
+            'Content-Type': metadata.mimeType,
+            'Content-Disposition': `attachment; filename="${metadata.originalName}"`,
+        });
+
+        // Pipe the file data to the response
+        response.data.pipe(res);
+
+    } catch (error) {
+        console.error('Error retrieving file from IPFS:', error);
+        res.status(500).json({ success: false, message: 'Error retrieving the file from IPFS' });
     }
 });
 
