@@ -6,42 +6,62 @@ contract Evidence {
         string cid;
         string originalName;
         string mimeType;
-        string hash; // New field
-        string password; // New field
+        string hash; 
+        string encryptedPassword; // Updated field for security
         uint256 timestamp;
-        string name; // Evidence name
-        string description; // Evidence description
-        address owner; // Owner's MetaMask ID
+        string name; 
+        string description; 
+        address owner; 
     }
 
-    EvidenceRecord[] public evidenceRecords;
+    EvidenceRecord[] private evidenceRecords;  // Made private
+
+    event EvidenceAdded(address indexed owner, string cid, string name);
 
     function addEvidence(
         string memory _cid,
         string memory _originalName,
         string memory _mimeType,
         string memory _hash,
-        string memory _password,
+        string memory _encryptedPassword, // Updated
         string memory _name,
-        string memory _description,
-        string memory _owner
+        string memory _description
     ) public {
         evidenceRecords.push(EvidenceRecord({
             cid: _cid,
             originalName: _originalName,
             mimeType: _mimeType,
             hash: _hash,
-            password: _password,
+            encryptedPassword: _encryptedPassword,
             timestamp: block.timestamp,
             name: _name,
             description: _description,
-            owner: msg.sender // Store the owner's address
+            owner: msg.sender
         }));
+
+        emit EvidenceAdded(msg.sender, _cid, _name);
     }
 
-    function getEvidence(uint256 _index) public view returns (EvidenceRecord memory) {
+    function getEvidence(uint256 _index) public view returns (
+        string memory cid,
+        string memory originalName,
+        string memory mimeType,
+        string memory name,
+        string memory description,
+        address owner,
+        uint256 timestamp
+    ) {
         require(_index < evidenceRecords.length, "Index out of bounds");
-        return evidenceRecords[_index];
+        EvidenceRecord memory evidence = evidenceRecords[_index];
+        return (
+            evidence.cid,
+            evidence.originalName,
+            evidence.mimeType,
+            evidence.name,
+            evidence.description,
+            evidence.owner,
+            evidence.timestamp
+        );
     }
 
     function getEvidenceCount() public view returns (uint256) {

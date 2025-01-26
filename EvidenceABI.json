@@ -1,63 +1,28 @@
 [
   {
+    "anonymous": false,
     "inputs": [
       {
-        "internalType": "uint256",
-        "name": "",
-        "type": "uint256"
-      }
-    ],
-    "name": "evidenceRecords",
-    "outputs": [
+        "indexed": true,
+        "internalType": "address",
+        "name": "owner",
+        "type": "address"
+      },
       {
+        "indexed": false,
         "internalType": "string",
         "name": "cid",
         "type": "string"
       },
       {
-        "internalType": "string",
-        "name": "originalName",
-        "type": "string"
-      },
-      {
-        "internalType": "string",
-        "name": "mimeType",
-        "type": "string"
-      },
-      {
-        "internalType": "string",
-        "name": "hash",
-        "type": "string"
-      },
-      {
-        "internalType": "string",
-        "name": "password",
-        "type": "string"
-      },
-      {
-        "internalType": "uint256",
-        "name": "timestamp",
-        "type": "uint256"
-      },
-      {
+        "indexed": false,
         "internalType": "string",
         "name": "name",
         "type": "string"
-      },
-      {
-        "internalType": "string",
-        "name": "description",
-        "type": "string"
-      },
-      {
-        "internalType": "address",
-        "name": "owner",
-        "type": "address"
       }
     ],
-    "stateMutability": "view",
-    "type": "function",
-    "constant": true
+    "name": "EvidenceAdded",
+    "type": "event"
   },
   {
     "inputs": [
@@ -83,7 +48,7 @@
       },
       {
         "internalType": "string",
-        "name": "_password",
+        "name": "_encryptedPassword",
         "type": "string"
       },
       {
@@ -113,56 +78,39 @@
     "name": "getEvidence",
     "outputs": [
       {
-        "components": [
-          {
-            "internalType": "string",
-            "name": "cid",
-            "type": "string"
-          },
-          {
-            "internalType": "string",
-            "name": "originalName",
-            "type": "string"
-          },
-          {
-            "internalType": "string",
-            "name": "mimeType",
-            "type": "string"
-          },
-          {
-            "internalType": "string",
-            "name": "hash",
-            "type": "string"
-          },
-          {
-            "internalType": "string",
-            "name": "password",
-            "type": "string"
-          },
-          {
-            "internalType": "uint256",
-            "name": "timestamp",
-            "type": "uint256"
-          },
-          {
-            "internalType": "string",
-            "name": "name",
-            "type": "string"
-          },
-          {
-            "internalType": "string",
-            "name": "description",
-            "type": "string"
-          },
-          {
-            "internalType": "address",
-            "name": "owner",
-            "type": "address"
-          }
-        ],
-        "internalType": "struct Evidence.EvidenceRecord",
-        "name": "",
-        "type": "tuple"
+        "internalType": "string",
+        "name": "cid",
+        "type": "string"
+      },
+      {
+        "internalType": "string",
+        "name": "originalName",
+        "type": "string"
+      },
+      {
+        "internalType": "string",
+        "name": "mimeType",
+        "type": "string"
+      },
+      {
+        "internalType": "string",
+        "name": "name",
+        "type": "string"
+      },
+      {
+        "internalType": "string",
+        "name": "description",
+        "type": "string"
+      },
+      {
+        "internalType": "address",
+        "name": "owner",
+        "type": "address"
+      },
+      {
+        "internalType": "uint256",
+        "name": "timestamp",
+        "type": "uint256"
       }
     ],
     "stateMutability": "view",

@@ -6,7 +6,7 @@ const fs = require("fs");
 const FormData = require("form-data");
 const Web3 = require("web3").default;
 const contractABI = require("./EvidenceABI.json");
-const contractAddress = "0x735A49928A5356E86231B2c0b864E3FA9eaF8528"; // Your deployed contract address
+const contractAddress = "0x8c5c75E3124C66Bb25fb809f5219ad2a5656ADC7"; // Your deployed contract address
 require("dotenv").config();
 
 const app = express();
@@ -15,7 +15,7 @@ const upload = multer({ dest: "uploads/" });
 
 const PINATA_API_KEY = process.env.PINATA_API_KEY;
 const PINATA_SECRET_API_KEY = process.env.PINATA_SECRET_API_KEY;
-const web3 = new Web3("http://localhost:7545"); // Ganache provider
+const web3 = new Web3("http://127.0.0.1:7545"); // Ganache provider
 const evidenceContract = new web3.eth.Contract(contractABI, contractAddress); // Contract instance
 
 const saveMetadata = (metadata) => {
