@@ -300,6 +300,72 @@ app.get("/user/:address/evidence", async (req, res) => {
   }
 });
 
+app.get("/acounts", async (req, res) => {
+  try {
+    const accounts = await web3.eth.getAccounts();
+    res.json({ success: true, accounts });
+  } catch (error) {
+    res
+      .status(500)
+      .json({
+        success: false,
+        message: "Error fetching accounts",
+        error: error.message,
+      });
+  }
+});
+
+app.get("/logs/:id", async (req, res) => {
+  try {
+    const evidenceId = req.params.id;
+    if (!evidenceId) {
+      return res
+        .status(400)
+        .json({ success: false, message: "Evidence ID is required" });
+    }
+
+    const logs = await evidenceContract.getPastEvents("ALLEVENTS", {
+      filter: { evidenceId: evidenceId.toString() },
+      fromBlock: 0,
+      toBlock: "latest",
+    });
+
+    if (logs.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: "No EvidenceAdded event found for this evidenceId.",
+      });
+    }
+
+    console.log(logs[0]);
+    var formatted = []
+
+    for (let i = 0; i < logs.length; i++) {
+      const block = await web3.eth.getBlock(logs[i].blockNumber);
+      const timestamp = new Date(Number(block.timestamp) * 1000).toLocaleString();
+
+      formatted.push({
+        event: logs[i].event,
+        timestamp,
+        ...(logs[i].returnValues?.user && { user: logs[i].returnValues.user }), // only include if it exists
+      });
+    }
+
+    res.json({
+      success: true,
+      events: formatted,
+    });
+  } catch (error) {
+    console.error("❌ Error fetching block logs:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to fetch logs",
+      error: error.message,
+    });
+  }
+});
+
+
 // ========================== SERVER START ==========================
 
 app.listen(3000, () => {
