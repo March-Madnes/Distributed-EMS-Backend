@@ -164,7 +164,7 @@ contract Evidence {
         uint256 count = 0;
 
         // First pass: count how many evidences the user can access
-        for (uint256 i = 0; i < evidenceCount; i++) {
+        for (uint256 i = 1; i <= evidenceCount; i++) {
             if (evidenceAccess[i][_user] || evidenceRecords[i].owner == _user) {
                 count++;
             }
@@ -174,7 +174,7 @@ contract Evidence {
         uint256[] memory result = new uint256[](count);
         uint256 index = 0;
 
-        for (uint256 i = 0; i < evidenceCount; i++) {
+        for (uint256 i = 1; i <= evidenceCount; i++) {
             if (evidenceAccess[i][_user] || evidenceRecords[i].owner == _user) {
                 result[index] = i;
                 index++;

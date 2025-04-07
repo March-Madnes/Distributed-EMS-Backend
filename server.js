@@ -16,7 +16,7 @@ const upload = multer({ dest: "uploads/" });
 
 const PINATA_API_KEY = process.env.PINATA_API_KEY;
 const PINATA_SECRET_API_KEY = process.env.PINATA_SECRET_API_KEY;
-const CONTRACT_ADDRESS = "0xd19dEbBbb4A9E98885D14135eDD26053c47E5BD3";
+const CONTRACT_ADDRESS = "0xbcbd3814bA874b3bF8A169dAD199193A8Da46415";
 const ADMIN_ADDRESS = "0x89a21195cE6ff7611fF5F8A02C3550F851CeD912";
 
 const web3 = new Web3("http://127.0.0.1:7545");
@@ -164,6 +164,8 @@ app.get("/accessibleEvidence", async (req, res) => {
     const ids = await evidenceContract.methods
       .getAccessibleEvidenceIds(address)
       .call();
+
+    console.log("🔹 Accessible Evidence IDs:", ids);
 
     const results = [];
 
