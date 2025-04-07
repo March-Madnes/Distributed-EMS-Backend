@@ -150,6 +150,59 @@ app.post("/upload", upload.single("file"), async (req, res) => {
   }
 });
 
+app.get("/accessibleEvidence", async (req, res) => {
+  try {
+    const address = req.query.viewer?.toString();
+
+    if (!address) {
+      return res.status(400).json({
+        success: false,
+        message: "Missing 'viewer' address in query params",
+      });
+    }
+
+    const ids = await evidenceContract.methods
+      .getAccessibleEvidenceIds(address)
+      .call();
+
+    const results = [];
+
+    for (const id of ids) {
+      try {
+        const evidence = await evidenceContract.methods
+          .getEvidence(id)
+          .call({ from: address });
+
+        results.push({
+          id: id.toString(), // Just in case ID is a BigInt
+          cid: evidence.cid,
+          originalName: evidence.originalName,
+          mimeType: evidence.mimeType,
+          name: evidence.name,
+          description: evidence.description,
+          owner: evidence.owner,
+          timestamp: evidence.timestamp.toString(), // ✅ BigInt-safe
+        });
+      } catch (err) {
+        continue; // Access denied or other issue
+      }
+    }
+
+    res.json({
+      success: true,
+      accessibleEvidence: results,
+    });
+  } catch (error) {
+    console.error("❌ Error fetching accessible evidences:", error);
+    res.status(500).json({
+      success: false,
+      message: "Error fetching user evidence",
+      error: error.message,
+    });
+  }
+});
+
+
 app.get("/evidence", async (req, res) => {
   try {
     const viewer = req.query.viewer.toString();
@@ -337,7 +390,6 @@ app.get("/logs/:id", async (req, res) => {
       });
     }
 
-    console.log(logs[0]);
     var formatted = []
 
     for (let i = 0; i < logs.length; i++) {

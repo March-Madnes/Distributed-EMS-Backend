@@ -139,7 +139,7 @@ contract Evidence {
     function getMyEvidenceIds() public view returns (uint256[] memory) {
         uint256 count = 0;
 
-        for (uint256 i = 0; i < evidenceCount; i++) {
+        for (uint256 i = 1; i <= evidenceCount; i++) {
             if (evidenceRecords[i].owner == msg.sender) {
                 count++;
             }
@@ -148,7 +148,7 @@ contract Evidence {
         uint256[] memory result = new uint256[](count);
         uint256 index = 0;
 
-        for (uint256 i = 0; i < evidenceCount; i++) {
+        for (uint256 i = 1; i <= evidenceCount; i++) {
             if (evidenceRecords[i].owner == msg.sender) {
                 result[index] = i;
                 index++;
