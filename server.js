@@ -16,8 +16,8 @@ const upload = multer({ dest: "uploads/" });
 
 const PINATA_API_KEY = process.env.PINATA_API_KEY;
 const PINATA_SECRET_API_KEY = process.env.PINATA_SECRET_API_KEY;
-const CONTRACT_ADDRESS = "0xAbe5fF6B90D1cD5F80c2663d793D72343C09329B";
-const ADMIN_ADDRESS = "0x031c7166b87d48E9c99a3B09A6A94Aa55A1969Af";
+const CONTRACT_ADDRESS = "0xd19dEbBbb4A9E98885D14135eDD26053c47E5BD3";
+const ADMIN_ADDRESS = "0x89a21195cE6ff7611fF5F8A02C3550F851CeD912";
 
 const web3 = new Web3("http://127.0.0.1:7545");
 const evidenceContract = new web3.eth.Contract(contractABI, CONTRACT_ADDRESS);
