@@ -22,6 +22,30 @@ const ADMIN_ADDRESS = "0x89a21195cE6ff7611fF5F8A02C3550F851CeD912";
 const web3 = new Web3("http://127.0.0.1:7545");
 const evidenceContract = new web3.eth.Contract(contractABI, CONTRACT_ADDRESS);
 
+const swaggerJsDoc = require("swagger-jsdoc");
+const swaggerUi = require("swagger-ui-express");
+
+const swaggerOptions = {
+  swaggerDefinition: {
+    openapi: "3.0.0",
+    info: {
+      title: "Evidence Management API",
+      version: "1.0.0",
+      description: "Auto-generated documentation of your Express API",
+    },
+    servers: [
+      {
+        url: "http://localhost:3000",
+      },
+    ],
+  },
+  apis: ["./server.js"], // or whatever your filename is
+};
+
+const swaggerDocs = swaggerJsDoc(swaggerOptions);
+app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerDocs));
+
+
 // ========================== ROLE MANAGEMENT ==========================
 
 const isInvestigator = async (address) => {
@@ -45,6 +69,23 @@ const assignInvestigatorRole = async (address) => {
   }
 };
 
+/**
+ * @swagger
+ * /test/role/{address}:
+ *   get:
+ *     summary: Get user role by wallet address
+ *     tags: [Roles]
+ *     parameters:
+ *       - in: path
+ *         name: address
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Ethereum wallet address
+ *     responses:
+ *       200:
+ *         description: User role fetched
+ */
 app.get("/test/role/:address", async (req, res) => {
   try {
     const address = req.params.address;
@@ -61,6 +102,27 @@ app.get("/test/role/:address", async (req, res) => {
   }
 });
 
+/**
+ * @swagger
+ * /assignRole:
+ *   post:
+ *     summary: Assign a role to a wallet address
+ *     tags: [Roles]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               address:
+ *                 type: string
+ *               role:
+ *                 type: integer
+ *     responses:
+ *       200:
+ *         description: Role assigned
+ */
 app.post("/assignRole", async (req, res) => {
   try {
     const { address, role } = req.body;
@@ -87,6 +149,32 @@ app.post("/assignRole", async (req, res) => {
 
 // ========================== EVIDENCE MANAGEMENT ==========================
 
+/**
+ * @swagger
+ * /upload:
+ *   post:
+ *     summary: Upload evidence file to IPFS
+ *     tags: [Evidence]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         multipart/form-data:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               file:
+ *                 type: string
+ *                 format: binary
+ *               owner:
+ *                 type: string
+ *               fileName:
+ *                 type: string
+ *               fileDescription:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: File uploaded and added to smart contract
+ */
 app.post("/upload", upload.single("file"), async (req, res) => {
   try {
     const file = req.file;
@@ -150,6 +238,22 @@ app.post("/upload", upload.single("file"), async (req, res) => {
   }
 });
 
+/**
+ * @swagger
+ * /accessibleEvidence:
+ *   get:
+ *     summary: Get list of evidences accessible to a user
+ *     tags: [Evidence]
+ *     parameters:
+ *       - in: query
+ *         name: viewer
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Accessible evidence list returned
+ */
 app.get("/accessibleEvidence", async (req, res) => {
   try {
     const address = req.query.viewer?.toString();
@@ -204,7 +308,22 @@ app.get("/accessibleEvidence", async (req, res) => {
   }
 });
 
-
+/**
+ * @swagger
+ * /evidence:
+ *   get:
+ *     summary: Get all accessible evidences
+ *     tags: [Evidence]
+ *     parameters:
+ *       - in: query
+ *         name: viewer
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: List of all evidence records
+ */
 app.get("/evidence", async (req, res) => {
   try {
     const viewer = req.query.viewer.toString();
@@ -255,6 +374,28 @@ app.get("/evidence", async (req, res) => {
   }
 });
 
+
+/**
+ * @swagger
+ * /evidence/{id}/{address}:
+ *   get:
+ *     summary: Get single evidence details by ID and address
+ *     tags: [Evidence]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *       - in: path
+ *         name: address
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Evidence record returned
+ */
 app.get("/evidence/:id/:address", async (req, res) => {
   try {
     const { id, address } = req.params;
@@ -269,6 +410,27 @@ app.get("/evidence/:id/:address", async (req, res) => {
   }
 });
 
+/**
+ * @swagger
+ * /evidence/{id}/access/{user}:
+ *   get:
+ *     summary: Check if a user has access to an evidence
+ *     tags: [Access Control]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *       - in: path
+ *         name: user
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Access result
+ */
 app.get("/evidence/:id/access/:user", async (req, res) => {
   try {
     const { id, user } = req.params;
@@ -288,6 +450,29 @@ app.get("/evidence/:id/access/:user", async (req, res) => {
   }
 });
 
+/**
+ * @swagger
+ * /grantAccess:
+ *   post:
+ *     summary: Grant access to a specific user for an evidence
+ *     tags: [Access Control]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               evidenceId:
+ *                 type: integer
+ *               owner:
+ *                 type: string
+ *               grantee:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Access granted
+ */
 app.post("/grantAccess", async (req, res) => {
   try {
     const { evidenceId, owner, grantee } = req.body;
@@ -306,6 +491,29 @@ app.post("/grantAccess", async (req, res) => {
   }
 });
 
+/**
+ * @swagger
+ * /revokeAccess:
+ *   post:
+ *     summary: Revoke access to an evidence from a user
+ *     tags: [Access Control]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               evidenceId:
+ *                 type: integer
+ *               owner:
+ *                 type: string
+ *               target:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Access revoked
+ */
 app.post("/revokeAccess", async (req, res) => {
   try {
     const { evidenceId, owner, target } = req.body;
@@ -324,6 +532,22 @@ app.post("/revokeAccess", async (req, res) => {
   }
 });
 
+/**
+ * @swagger
+ * /user/{address}/evidence:
+ *   get:
+ *     summary: Get accessible evidences for a user
+ *     tags: [Evidence]
+ *     parameters:
+ *       - in: path
+ *         name: address
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: List of accessible evidence for user
+ */
 app.get("/user/:address/evidence", async (req, res) => {
   try {
     const { address } = req.params;
@@ -355,7 +579,17 @@ app.get("/user/:address/evidence", async (req, res) => {
   }
 });
 
-app.get("/acounts", async (req, res) => {
+/**
+ * @swagger
+ * /accounts:
+ *   get:
+ *     summary: Get all accounts from the connected Web3 provider
+ *     tags: [Blockchain]
+ *     responses:
+ *       200:
+ *         description: List of Ethereum accounts
+ */
+app.get("/accounts", async (req, res) => {
   try {
     const accounts = await web3.eth.getAccounts();
     res.json({ success: true, accounts });
@@ -370,6 +604,22 @@ app.get("/acounts", async (req, res) => {
   }
 });
 
+/**
+ * @swagger
+ * /logs/{id}:
+ *   get:
+ *     summary: Get blockchain event logs for a specific evidence
+ *     tags: [Blockchain]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *     responses:
+ *       200:
+ *         description: Event logs for the evidence ID
+ */
 app.get("/logs/:id", async (req, res) => {
   try {
     const evidenceId = req.params.id;
